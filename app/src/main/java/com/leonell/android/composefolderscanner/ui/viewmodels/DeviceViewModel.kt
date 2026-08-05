@@ -11,6 +11,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import android.os.ParcelUuid
 import androidx.lifecycle.ViewModel
 import com.leonell.android.composefolderscanner.services.SERVICE_UUID
@@ -44,6 +45,12 @@ class DeviceViewModel : ViewModel(){
    private var scanner: BluetoothLeScanner? = null
    private val scanResults = mutableMapOf<String, BluetoothDevice>()
    private var scanCallback: DeviceScanCallback? = null
+
+   // The no-arg Handler() is deprecated and throws on a thread without a Looper. Holding one
+   // instance also lets the timeout be cancelled, which the old code could not do -- a stale
+   // callback would stop a scan the user had just restarted.
+   private val handler = Handler(Looper.getMainLooper())
+   private val stopScanRunnable = Runnable { stopScanning() }
    private lateinit var scanFilters: List<ScanFilter>
    private lateinit var scanSettings: ScanSettings
    fun initAdapter(app: Context)  {
@@ -69,7 +76,7 @@ class DeviceViewModel : ViewModel(){
       if (scanCallback == null && adapter != null) {
          scanner = adapter!!.bluetoothLeScanner
          mutableUiState.update { DeviceUiState.Scanning }
-         Handler().postDelayed({ stopScanning() }, SCAN_PERIOD)
+         handler.postDelayed(stopScanRunnable, SCAN_PERIOD)
 
          scanCallback = DeviceScanCallback()
          scanner?.startScan(scanFilters, scanSettings, scanCallback)
@@ -77,6 +84,7 @@ class DeviceViewModel : ViewModel(){
    }
 
    private fun stopScanning() {
+      handler.removeCallbacks(stopScanRunnable)
       scanner?.stopScan(scanCallback)
       scanCallback = null
       mutableUiState.update { DeviceUiState.Results(scanResults)}

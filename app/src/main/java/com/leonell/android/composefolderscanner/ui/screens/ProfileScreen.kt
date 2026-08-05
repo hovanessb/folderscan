@@ -79,7 +79,7 @@ internal fun ProfileScreen(
 ) {
 
    val barcodeData by scanModel.uiState.collectAsStateWithLifecycle()
-   val searchPerson by viewModel.searchPerson.collectAsStateWithLifecycle(initialValue = emptyList())
+   val searchPerson by viewModel.searchPerson.collectAsStateWithLifecycle()
    val textFocus =  LocalFocusManager.current
 
    LaunchedEffect(key1 =barcodeData.barcode?.barcodeId) {
